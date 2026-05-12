@@ -9,7 +9,7 @@ import { validateZipHasGltf } from '@/lib/three/zipLoader'
 import { formatBytes } from '@/lib/utils'
 import Spinner from '@/components/ui/Spinner'
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024 // 500 MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB (Supabase free tier limit)
 const ALLOWED_EXT = ['glb', 'gltf', 'fbx', 'zip']
 
 type Status = 'idle' | 'processing' | 'uploading' | 'success' | 'error'
@@ -40,7 +40,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
         return
       }
       if (selected.size > MAX_FILE_SIZE) {
-        setError(`File exceeds 500 MB limit (${formatBytes(selected.size)}).`)
+        setError(`File exceeds 50 MB limit (${formatBytes(selected.size)}).`)
         return
       }
       if (ext === 'zip') {
@@ -196,7 +196,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
             <Upload className="h-12 w-12 text-zinc-600" />
             <p className="text-white font-medium">Drop your 3D model here</p>
             <p className="text-zinc-400 text-sm">or click to browse</p>
-            <p className="text-zinc-600 text-xs mt-1">GLB · GLTF · FBX · ZIP (animated GLTF) · Max 500 MB</p>
+            <p className="text-zinc-600 text-xs mt-1">GLB · GLTF · FBX · ZIP (animated GLTF) · Max 50 MB</p>
           </div>
         )}
       </div>
