@@ -14,7 +14,7 @@ import Spinner from '@/components/ui/Spinner'
 export interface ViewerSettings {
   wireframe: boolean
   autoRotate: boolean
-  environment: 'studio' | 'outdoor' | 'dark'
+  environment: 'studio' | 'outdoor' | 'dark' | 'skybox1' | 'skybox2' | 'skybox3'
   doubleSided: boolean
   lightAngle: number      // 0–360 deg: 0=left, 90=front, 180=right, 270=back
   lightIntensity: number  // multiplier 0–2, default 1.0
@@ -36,13 +36,22 @@ export interface ModelViewerRef {
 
 // ── Environment presets ───────────────────────────────────────
 
-// IBL (RoomEnvironment) handles the soft ambient fill.
-// ambient = AmbientLight fill for unlit/FBX materials; dir = key shadow caster only.
-const ENV_PRESETS = {
+const SOLID_PRESETS = {
   studio:  { bg: 0x2a2a2e, hemi: 2.2, dir: 2.0, ibl: 0.8 },
   outdoor: { bg: 0x87ceeb, hemi: 2.8, dir: 2.8, ibl: 0.8 },
   dark:    { bg: 0x080810, hemi: 0.8, dir: 1.2, ibl: 0.3 },
 } as const
+type SolidEnv = keyof typeof SOLID_PRESETS
+
+const SKYBOX_PRESET = { hemi: 1.5, dir: 2.0, ibl: 1.0 } as const
+
+function isSkybox(env: string): env is 'skybox1' | 'skybox2' | 'skybox3' {
+  return env.startsWith('skybox')
+}
+
+function getPreset(env: string) {
+  return isSkybox(env) ? SKYBOX_PRESET : SOLID_PRESETS[env as SolidEnv]
+}
 
 interface ModelViewerProps {
   modelUrl: string
@@ -71,6 +80,7 @@ export default function ModelViewer({
   const trianglesRef = useRef<number>(0)
   const drawCallsRef = useRef<number>(0)
   const verticesRef  = useRef<number>(0)
+  const iblTextureRef     = useRef<THREE.Texture | null>(null)
   const mixerRef          = useRef<THREE.AnimationMixer | null>(null)
   const animationClipsRef = useRef<THREE.AnimationClip[]>([])
   const currentActionRef  = useRef<THREE.AnimationAction | null>(null)
@@ -145,8 +155,7 @@ export default function ModelViewer({
   // Light intensity multiplier
   useEffect(() => {
     if (!keyLightRef.current) return
-    const { dir } = ENV_PRESETS[settings.environment]
-    keyLightRef.current.intensity = dir * settings.lightIntensity
+    keyLightRef.current.intensity = getPreset(settings.environment).dir * settings.lightIntensity
   }, [settings.lightIntensity, settings.environment])
 
   // Animation clip selection
@@ -171,12 +180,36 @@ export default function ModelViewer({
 
   // Environment preset
   useEffect(() => {
-    if (!sceneRef.current) return
-    const { bg, hemi, dir, ibl } = ENV_PRESETS[settings.environment]
-    sceneRef.current.background = new THREE.Color(bg)
-    sceneRef.current.environmentIntensity = ibl
-    if (hemiLightRef.current) hemiLightRef.current.intensity = hemi
-    if (keyLightRef.current) keyLightRef.current.intensity = dir * settings.lightIntensity
+    const scene = sceneRef.current
+    if (!scene) return
+    const preset = getPreset(settings.environment)
+
+    if (!isSkybox(settings.environment)) {
+      // Dispose any previous skybox texture
+      if (scene.background instanceof THREE.CubeTexture) scene.background.dispose()
+      const solidPreset = preset as typeof SOLID_PRESETS[SolidEnv]
+      scene.background = new THREE.Color(solidPreset.bg)
+      scene.environment = iblTextureRef.current
+      scene.environmentIntensity = solidPreset.ibl
+      if (hemiLightRef.current) hemiLightRef.current.intensity = solidPreset.hemi
+      if (keyLightRef.current) keyLightRef.current.intensity = solidPreset.dir * settingsRef.current.lightIntensity
+      return
+    }
+
+    const n = settings.environment.slice(-1)
+    const base = `/skyboxes/skybox${n}/`
+    new THREE.CubeTextureLoader().load(
+      [`${base}px.png`, `${base}nx.png`, `${base}py.png`, `${base}ny.png`, `${base}pz.png`, `${base}nz.png`],
+      (tex) => {
+        if (!sceneRef.current) return
+        if (scene.background instanceof THREE.CubeTexture) scene.background.dispose()
+        scene.background = tex
+        scene.environment = tex
+        scene.environmentIntensity = preset.ibl
+        if (hemiLightRef.current) hemiLightRef.current.intensity = preset.hemi
+        if (keyLightRef.current) keyLightRef.current.intensity = preset.dir * settingsRef.current.lightIntensity
+      }
+    )
   }, [settings.environment]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Full scene initialization ─────────────────────────────
@@ -204,13 +237,16 @@ export default function ModelViewer({
     const pmrem = new THREE.PMREMGenerator(renderer)
     const iblTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
     pmrem.dispose()
+    iblTextureRef.current = iblTexture
 
     // ── Scene ──
-    const { bg, hemi: hemiInt, dir: dirInt, ibl: iblInt } = ENV_PRESETS[settings.environment]
+    const preset = getPreset(settings.environment)
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(bg)
+    scene.background = isSkybox(settings.environment)
+      ? new THREE.Color(0x2a2a2e)
+      : new THREE.Color((preset as typeof SOLID_PRESETS[SolidEnv]).bg)
     scene.environment = iblTexture
-    scene.environmentIntensity = iblInt
+    scene.environmentIntensity = preset.ibl
     sceneRef.current = scene
 
     // ── Camera ──
@@ -220,12 +256,12 @@ export default function ModelViewer({
 
     // ── Lights ──
     // HemisphereLight: sky light from above + ground bounce — keeps all faces visible at any rotation
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444466, hemiInt)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444466, preset.hemi)
     scene.add(hemiLight)
     hemiLightRef.current = hemiLight
 
     // Key light: shadow caster only — IBL handles diffuse fill
-    const keyLight = new THREE.DirectionalLight(0xffffff, dirInt)
+    const keyLight = new THREE.DirectionalLight(0xffffff, preset.dir)
     keyLight.name = 'key'
     keyLight.position.set(5, 8, 5)
     keyLight.castShadow = true
@@ -414,6 +450,8 @@ export default function ModelViewer({
       animationClipsRef.current = []
       currentActionRef.current = null
       renderer.dispose()
+      iblTextureRef.current?.dispose()
+      iblTextureRef.current = null
       keyLightRef.current = null
       hemiLightRef.current = null
       zipCleanup?.()

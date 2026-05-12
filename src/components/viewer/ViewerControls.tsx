@@ -201,7 +201,7 @@ export default function ViewerControls({ settings, onChange, cameraAzimuth, anim
           <Sun className="h-3.5 w-3.5 text-zinc-400" />
           Environment
         </p>
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-3 gap-1 mb-1.5">
           {(['studio', 'outdoor', 'dark'] as const).map((env) => (
             <button
               key={env}
@@ -216,6 +216,28 @@ export default function ViewerControls({ settings, onChange, cameraAzimuth, anim
               {env}
             </button>
           ))}
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {([1, 2, 3] as const).map((n) => {
+            const key = `skybox${n}` as const
+            const active = settings.environment === key
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => patch({ environment: key })}
+                className={`relative overflow-hidden rounded-lg aspect-square transition-all ${
+                  active ? 'ring-2 ring-brand-500' : 'ring-1 ring-zinc-700 hover:ring-zinc-500'
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/skyboxes/skybox${n}/py.png`} alt={`Sky ${n}`} className="w-full h-full object-cover" />
+                <span className="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/50 text-zinc-300 py-0.5">
+                  Sky {n}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
