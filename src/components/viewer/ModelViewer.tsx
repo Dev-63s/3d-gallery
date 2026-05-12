@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { loadZipFromUrl } from '@/lib/three/zipLoader'
@@ -385,6 +386,8 @@ export default function ModelViewer({
 
     if (urlLower.endsWith('.fbx')) {
       new FBXLoader().load(modelUrl, (fbx) => onModelLoaded(fbx, fbx.animations), onProgress, onLoadError)
+    } else if (urlLower.endsWith('.obj')) {
+      new OBJLoader().load(modelUrl, (obj) => onModelLoaded(obj), onProgress, onLoadError)
     } else if (urlLower.endsWith('.zip')) {
       loadZipFromUrl(modelUrl)
         .then(({ manager, gltfUrl, cleanup }) => {

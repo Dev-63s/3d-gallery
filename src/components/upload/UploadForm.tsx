@@ -10,7 +10,7 @@ import { formatBytes } from '@/lib/utils'
 import Spinner from '@/components/ui/Spinner'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB (Supabase free tier limit)
-const ALLOWED_EXT = ['glb', 'gltf', 'fbx', 'zip']
+const ALLOWED_EXT = ['glb', 'gltf', 'fbx', 'zip', 'obj']
 
 type Status = 'idle' | 'processing' | 'uploading' | 'success' | 'error'
 
@@ -36,7 +36,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
     async (selected: File) => {
       const ext = selected.name.split('.').pop()?.toLowerCase() ?? ''
       if (!ALLOWED_EXT.includes(ext)) {
-        setError('Only .glb, .gltf, .fbx, and .zip (GLTF) files are supported.')
+        setError('Only .glb, .gltf, .fbx, .obj, and .zip (GLTF) files are supported.')
         return
       }
       if (selected.size > MAX_FILE_SIZE) {
@@ -108,8 +108,8 @@ export default function UploadForm({ userId }: UploadFormProps) {
           cacheControl: '3600',
           upsert: false,
           contentType:
-            ext === 'fbx' ? 'application/octet-stream' :
-            ext === 'glb' ? 'model/gltf-binary' : 'model/gltf+json',
+            ext === 'glb' ? 'model/gltf-binary' :
+            ext === 'gltf' ? 'model/gltf+json' : 'application/octet-stream',
         })
       if (modelErr) throw modelErr
 
@@ -141,7 +141,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
           description: description.trim() || null,
           file_path: modelPath,
           file_size: file.size,
-          original_format: ext as 'glb' | 'gltf' | 'fbx' | 'zip',
+          original_format: ext as 'glb' | 'gltf' | 'fbx' | 'zip' | 'obj',
           triangle_count: triangleCount,
           thumbnail_path: uploadedThumbnailPath,
           tags,
@@ -180,7 +180,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb,.gltf,.fbx,.zip"
+          accept=".glb,.gltf,.fbx,.zip,.obj"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -196,7 +196,7 @@ export default function UploadForm({ userId }: UploadFormProps) {
             <Upload className="h-12 w-12 text-zinc-600" />
             <p className="text-white font-medium">Drop your 3D model here</p>
             <p className="text-zinc-400 text-sm">or click to browse</p>
-            <p className="text-zinc-600 text-xs mt-1">GLB · GLTF · FBX · ZIP (animated GLTF) · Max 50 MB</p>
+            <p className="text-zinc-600 text-xs mt-1">GLB · GLTF · FBX · OBJ · ZIP (animated GLTF) · Max 50 MB</p>
           </div>
         )}
       </div>

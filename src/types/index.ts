@@ -12,7 +12,7 @@ export interface Model {
   description: string | null
   file_path: string
   file_size: number
-  original_format: 'glb' | 'gltf' | 'fbx' | 'zip'
+  original_format: 'glb' | 'gltf' | 'fbx' | 'zip' | 'obj'
   triangle_count: number
   thumbnail_path: string | null
   view_count: number

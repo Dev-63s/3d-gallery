@@ -4,6 +4,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { loadZipFromFile } from './zipLoader'
 
@@ -103,6 +104,10 @@ export async function generateThumbnail(file: File): Promise<ThumbnailResult> {
           }
           mat.needsUpdate = true
         })
+      })
+    } else if (ext === 'obj') {
+      model = await new Promise<THREE.Group>((resolve, reject) => {
+        new OBJLoader().load(objectUrl, resolve, undefined, reject)
       })
     } else {
       const loader = new GLTFLoader()
