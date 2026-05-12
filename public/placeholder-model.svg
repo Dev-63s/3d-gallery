@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0f0f14"/>
+  <g transform="translate(256,256)" stroke="#3b3b52" stroke-width="2" fill="none">
+    <!-- Isometric cube wireframe -->
+    <polygon points="0,-80 70,-40 70,40 0,80 -70,40 -70,-40" stroke="#4b4b68" fill="#1a1a2e"/>
+    <polyline points="0,-80 0,0 70,-40" stroke="#6366f1"/>
+    <polyline points="0,0 -70,-40" stroke="#6366f1"/>
+    <polyline points="0,0 0,80" stroke="#6366f1"/>
+  </g>
+</svg>
